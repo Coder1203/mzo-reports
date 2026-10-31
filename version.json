@@ -1,6 +1,6 @@
 {
-  "version": "2.67",
-  "cache": "mzo-reports-cache-v259",
+  "version": "2.68",
+  "cache": "mzo-reports-cache-v260",
   "force_update": false,
-  "message": "New look: one clean design across every report, a faster workstation with search (Ctrl K), and Ask \u2014 type a question to get numbers or open a filtered report."
+  "message": "One detailed table per report: open a region, then a division, then a CCC to reach the applications, and click the path above the table to go back. Filters sit in a panel on the left."
 }
