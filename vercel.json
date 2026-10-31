@@ -88,10 +88,6 @@
     {
       "src": "smart_meter/**",
       "use": "@vercel/static"
-    },
-    {
-      "src": "sld/**",
-      "use": "@vercel/static"
     }
   ],
   "routes": [

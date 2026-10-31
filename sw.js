@@ -85,11 +85,8 @@ const PRECACHE_ASSETS = [
   'puja.html',
   'puja-newspaper.css',
   'icons/desktop-bg.webp',
-  'desktop-bg.webp',
   'icons/grid-action-light.webp',
-  'grid-action-light.webp',
   'icons/grid-twilight-dark.webp',
-  'grid-twilight-dark.webp',
   'offline.html',
   'loss.html',
   'performance_index.html',
@@ -103,9 +100,7 @@ const PRECACHE_ASSETS = [
   'icons/icon-512-v2.png',
   'icons/maa-durga-eyes.gif',
   'icons/diya-cropped.svg',
-  'tailwind_dist.css',
   'auth.js',
-  'home-button.js',
   'mzo_present.js'
 ];
 
@@ -250,7 +245,7 @@ function isNetworkFirstPath(pathname) {
 function skipPresentZoom(pathname) {
   const p = String(pathname || '');
   if (p === '/login.html' || p === '/offline.html' || p === '/app.html') return true;
-  if (p.startsWith('/power_map/') || p.startsWith('/sld/')) return true;
+  if (p.startsWith('/power_map/')) return true;
   if (p === '/accident/map.html') return true;
   return false;
 }
