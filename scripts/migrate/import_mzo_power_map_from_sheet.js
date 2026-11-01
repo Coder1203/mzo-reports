@@ -1,8 +1,8 @@
 /**
  * Import Power Map Google Sheet → Supabase `mzo_power_substations`
  *
- * 1. Run scripts/create_mzo_power_map_tables.sql in Supabase SQL Editor
- * 2. node scripts/import_mzo_power_map_from_sheet.js
+ * 1. Run scripts/sql/create_mzo_power_map_tables.sql in Supabase SQL Editor
+ * 2. node scripts/migrate/import_mzo_power_map_from_sheet.js
  */
 
 const fs = require('fs');
@@ -23,7 +23,7 @@ const COLUMNS = [
 function loadConfig() {
   let url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   let key = process.env.SUPABASE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
-  const cfgPath = path.join(__dirname, '..', 'data', 'supabase_config.json');
+  const cfgPath = path.join(__dirname, '..', '..', 'data', 'supabase_config.json');
   if (fs.existsSync(cfgPath)) {
     const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
     url = cfg.supabaseUrl || cfg.url || url;
@@ -125,8 +125,8 @@ async function main() {
     if (String(err.body || err.message).includes('42P01') || err.status === 404) {
       console.error(`\n[import] Table public.${POWER_MAP_TABLE} does not exist.`);
       console.error('Run this SQL in Supabase → SQL Editor first:');
-      console.error('  scripts/create_mzo_power_map_tables.sql\n');
-      console.error('Then re-run: node scripts/import_mzo_power_map_from_sheet.js');
+      console.error('  scripts/sql/create_mzo_power_map_tables.sql\n');
+      console.error('Then re-run: node scripts/migrate/import_mzo_power_map_from_sheet.js');
       process.exit(2);
     }
     throw err;

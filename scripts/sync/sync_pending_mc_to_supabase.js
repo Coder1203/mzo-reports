@@ -3,52 +3,12 @@
  * Fetches Pending Master Card CSV from Google Sheets, generates pre-computed KPIs,
  * and uploads snapshot.csv to Supabase Storage ('reports' bucket).
  */
-const fs = require('fs');
-const path = require('path');
+const { parseCsvLine, fetchCsv, storageConfigured, upload, publishMeta, cli } = require('./common');
 
+const LABEL = 'Pending MC Sync';
 const GOOGLE_CSV_URL =
   process.env.PENDING_MC_SHEET_CSV_URL ||
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vQmOUW4jxUtEGWhPHaoNBsvpBcGzhHJZRUx_9mxFBp91sfg4yD8WIqIK_xv0vlFs2yP-Ljz09JW1U2c/pub?gid=0&single=true&output=csv';
-
-const CFG_PATH = path.join(__dirname, '..', 'data', 'supabase_config.json');
-let SUPABASE_URL = process.env.INSIGHT_SUPABASE_URL || '';
-let SUPABASE_KEY = process.env.INSIGHT_SUPABASE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-
-if (fs.existsSync(CFG_PATH)) {
-  try {
-    const cfg = JSON.parse(fs.readFileSync(CFG_PATH, 'utf8'));
-    if (cfg.insightUrl) SUPABASE_URL = cfg.insightUrl;
-    if (cfg.insightKey) SUPABASE_KEY = cfg.insightKey;
-  } catch (_) {}
-}
-
-const STORAGE_BUCKET = process.env.REPORTS_STORAGE_BUCKET || 'reports';
-const STORAGE_OBJECT = 'pending_mc/snapshot.csv';
-const META_FILE = path.join(__dirname, '..', 'data', 'pending_mc_meta.json');
-
-function parseCsvLine(line) {
-  const result = [];
-  let cur = '';
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i];
-    if (c === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        cur += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (c === ',' && !inQuotes) {
-      result.push(cur.trim());
-      cur = '';
-    } else {
-      cur += c;
-    }
-  }
-  result.push(cur.trim());
-  return result;
-}
 
 function parseDate(d) {
   if (!d || typeof d !== 'string') return null;
@@ -75,14 +35,8 @@ function formatDate(date) {
 }
 
 async function run() {
-  console.log('[Pending MC Sync] Fetching CSV from Google Sheets...');
   const t0 = Date.now();
-  const res = await fetch(GOOGLE_CSV_URL);
-  if (!res.ok) throw new Error(`Google Sheets fetch HTTP ${res.status}`);
-  const csvText = await res.text();
-  console.log(
-    `[Pending MC Sync] Downloaded in ${Date.now() - t0}ms (${(csvText.length / 1024).toFixed(1)} KB)`
-  );
+  const csvText = await fetchCsv(GOOGLE_CSV_URL, LABEL);
 
   const lines = csvText.split('\n').filter(l => l.trim().length > 0);
   if (lines.length < 2) throw new Error('CSV is empty or malformed.');
@@ -93,7 +47,6 @@ async function run() {
 
   const regionIdx = colIndex['Region'] ?? -1;
   const divIdx = colIndex['Division'] ?? -1;
-  const cccIdx = colIndex['CCC'] ?? -1;
   const classIdx = colIndex['CLASS'] ?? -1;
   const repDateIdx = colIndex['Report Date'] ?? -1;
   const instDateIdx = colIndex['Meter Installation Date'] ?? -1;
@@ -155,29 +108,14 @@ async function run() {
     syncedAt: nowIso
   };
 
-  console.log('[Pending MC Sync] Summary stats:', stats);
+  console.log(`[${LABEL}] Summary stats:`, stats);
 
-  // Upload snapshot CSV to Supabase Storage
   let publicCsvUrl = '';
-  if (SUPABASE_URL && SUPABASE_KEY) {
-    console.log(`[Pending MC Sync] Uploading to Supabase Storage (${STORAGE_BUCKET}/${STORAGE_OBJECT})...`);
-    const uploadUrl = `${SUPABASE_URL.replace(/\/$/, '')}/storage/v1/object/${STORAGE_BUCKET}/${STORAGE_OBJECT}`;
-    const upRes = await fetch(uploadUrl, {
-      method: 'POST',
-      headers: {
-        apikey: SUPABASE_KEY,
-        Authorization: 'Bearer ' + SUPABASE_KEY,
-        'Content-Type': 'text/csv',
-        'x-upsert': 'true'
-      },
-      body: csvText
-    });
-
-    if (upRes.ok) {
-      console.log('[Pending MC Sync] Storage upload SUCCESS!');
-      publicCsvUrl = `${SUPABASE_URL.replace(/\/$/, '')}/storage/v1/object/public/${STORAGE_BUCKET}/${STORAGE_OBJECT}?v=${encodeURIComponent(version)}`;
-    } else {
-      console.warn('[Pending MC Sync] Storage upload failed:', upRes.status, await upRes.text());
+  if (storageConfigured()) {
+    try {
+      publicCsvUrl = `${await upload('pending_mc/snapshot.csv', csvText, 'text/csv')}?v=${encodeURIComponent(version)}`;
+    } catch (e) {
+      console.warn(`[${LABEL}] Storage upload failed: ${e.message}`);
     }
   }
 
@@ -189,41 +127,12 @@ async function run() {
     csvUrl: publicCsvUrl || GOOGLE_CSV_URL,
     source: publicCsvUrl ? 'supabase_storage' : 'google_sheet'
   };
+  await publishMeta('pending_mc', 'pending_mc_meta.json', meta, LABEL);
 
-  fs.writeFileSync(META_FILE, JSON.stringify(meta, null, 2), 'utf8');
-  console.log(`[Pending MC Sync] Local meta saved: ${META_FILE}`);
-
-  // Upload meta.json to Supabase Storage
-  if (SUPABASE_URL && SUPABASE_KEY) {
-    const metaUploadUrl = `${SUPABASE_URL.replace(/\/$/, '')}/storage/v1/object/${STORAGE_BUCKET}/pending_mc/meta.json`;
-    try {
-      const mUp = await fetch(metaUploadUrl, {
-        method: 'POST',
-        headers: {
-          apikey: SUPABASE_KEY,
-          Authorization: 'Bearer ' + SUPABASE_KEY,
-          'Content-Type': 'application/json',
-          'x-upsert': 'true'
-        },
-        body: JSON.stringify(meta, null, 2)
-      });
-      if (mUp.ok) {
-        console.log('[Pending MC Sync] Uploaded pending_mc/meta.json to Supabase Storage!');
-      }
-    } catch (e) {
-      console.warn('[Pending MC Sync] meta.json upload error:', e.message);
-    }
-  }
-
-  console.log('[Pending MC Sync] ALL DONE in', Date.now() - t0, 'ms');
+  console.log(`[${LABEL}] Done in ${Date.now() - t0}ms`);
   return meta;
 }
 
 module.exports = { syncPendingMcToSupabase: run };
 
-if (require.main === module) {
-  run().catch(err => {
-    console.error('[Pending MC Sync] Error:', err);
-    process.exit(1);
-  });
-}
+cli(module, run, LABEL);

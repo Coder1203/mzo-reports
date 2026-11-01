@@ -1,7 +1,7 @@
 /**
  * Backfill blank stock_allotments.date from created_at (Asia/Kolkata calendar day).
  */
-const cfg = require('../data/supabase_config.json');
+const cfg = require('../../data/supabase_config.json');
 
 const url = cfg.supabaseUrl;
 const key = cfg.supabaseKey;

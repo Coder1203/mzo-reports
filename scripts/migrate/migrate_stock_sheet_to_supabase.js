@@ -1,12 +1,12 @@
 /**
  * Migrate current Google Sheet stock dump → mzo_insight.stock_snapshot
- * Usage: node scripts/migrate_stock_sheet_to_supabase.js
+ * Usage: node scripts/migrate/migrate_stock_sheet_to_supabase.js
  */
 const fs = require('fs');
 const path = require('path');
 const XLSX = require('xlsx');
-const { lookupStockCategory } = require('../lib/stock_material_category');
-const { dashboardRowToDb, toCsv, OUTPUT_COLUMNS } = require('../lib/stock_pipeline');
+const { lookupStockCategory } = require('../../lib/stock_material_category');
+const { dashboardRowToDb, toCsv, OUTPUT_COLUMNS } = require('../../lib/stock_pipeline');
 
 const SHEET_URL =
   process.env.STOCK_SHEET_CSV_URL ||
@@ -22,7 +22,7 @@ const FALLBACK_URL = 'https://unsmtschmcvftfqwabaq.supabase.co';
 const FALLBACK_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVuc210c2NobWN2ZnRmcXdhYmFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1NzA1MTYsImV4cCI6MjA2OTE0NjUxNn0.X3_q0FyEjam4ct03sjiqINz0_Hfu0AlWgRcymA3us9o';
 
-const cfgPath = path.join(__dirname, '..', 'data', 'supabase_config.json');
+const cfgPath = path.join(__dirname, '..', '..', 'data', 'supabase_config.json');
 if (fs.existsSync(cfgPath)) {
   try {
     const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
@@ -115,7 +115,7 @@ function sqlStr(v) {
 }
 
 function writeImportSql(published, meta) {
-  const { DB_KEYS } = require('../lib/stock_pipeline');
+  const { DB_KEYS } = require('../../lib/stock_pipeline');
   const valueLines = published.map((r) => {
     const db = dashboardRowToDb(r, 0);
     return `(uid, ${DB_KEYS.map((k) => sqlStr(db[k])).join(', ')})`;
@@ -166,7 +166,7 @@ function writeImportSql(published, meta) {
     ''
   ].join('\n');
 
-  const out = path.join(__dirname, 'import_stock_snapshot.sql');
+  const out = path.join(__dirname, '..', 'sql', 'import_stock_snapshot.sql');
   fs.writeFileSync(out, sql, 'utf8');
   return out;
 }
@@ -250,7 +250,7 @@ function writeImportSql(published, meta) {
 
   // local backup when data/ exists
   try {
-    const dataDir = path.join(__dirname, '..', 'data');
+    const dataDir = path.join(__dirname, '..', '..', 'data');
     if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
     fs.writeFileSync(path.join(dataDir, 'stock.csv'), toCsv(published), 'utf8');
     fs.writeFileSync(

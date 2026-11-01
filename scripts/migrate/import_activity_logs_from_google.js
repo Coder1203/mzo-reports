@@ -2,7 +2,7 @@
  * One-time import: Google Apps Script activity logs → mzo_insight.activity_logs
  *
  * Prerequisites:
- *   1. Run scripts/create_mzo_insight_activity_logs.sql in Supabase SQL Editor
+ *   1. Run scripts/sql/create_mzo_insight_activity_logs.sql in Supabase SQL Editor
  *   2. mzo_insight exposed (authenticator pgrst.db_schemas includes mzo_insight)
  *
  * Usage:
@@ -27,7 +27,7 @@ function loadCredentials() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
     process.env.SUPABASE_ANON_KEY ||
     '';
-  const cfgPath = path.join(__dirname, '..', 'data', 'supabase_config.json');
+  const cfgPath = path.join(__dirname, '..', '..', 'data', 'supabase_config.json');
   if (fs.existsSync(cfgPath)) {
     const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
     url = cfg.supabaseUrl || cfg.url || url;

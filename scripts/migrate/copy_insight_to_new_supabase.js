@@ -11,7 +11,7 @@
  *   "insightKey": "<new service_role>"
  * }
  *
- * Usage: node scripts/copy_insight_to_new_supabase.js
+ * Usage: node scripts/migrate/copy_insight_to_new_supabase.js
  * Optional: SKIP_STOCK_CSV=1 to skip Google/local snapshot.csv upload
  */
 const fs = require('fs');
@@ -24,7 +24,7 @@ const STOCK_SHEET_CSV =
   'https://docs.google.com/spreadsheets/d/1wDvPuAxNfdO9QzUaIUubg2JnkFM5ZleFNXQdi8s5uh0/gviz/tq?tqx=out:csv&sheet=Sheet1';
 
 function loadCfg() {
-  const cfgPath = path.join(__dirname, '..', 'data', 'supabase_config.json');
+  const cfgPath = path.join(__dirname, '..', '..', 'data', 'supabase_config.json');
   if (!fs.existsSync(cfgPath)) {
     throw new Error('Missing data/supabase_config.json (gitignored).');
   }
@@ -157,7 +157,7 @@ async function uploadSnapshotCsv(dest) {
     return;
   }
   let csv = '';
-  const localCsv = path.join(__dirname, '..', 'data', 'stock.csv');
+  const localCsv = path.join(__dirname, '..', '..', 'data', 'stock.csv');
   if (fs.existsSync(localCsv)) {
     csv = fs.readFileSync(localCsv, 'utf8');
     console.log('  snapshot.csv: from data/stock.csv');
@@ -195,7 +195,7 @@ async function main() {
     await rest(dest, 'portal_users?select=username&limit=1');
   } catch (e) {
     throw new Error(
-      'New project is not ready. Run scripts/create_insight_project_gmasnqeb.sql in the SQL Editor and expose schema mzo_insight. ' +
+      'New project is not ready. Run scripts/sql/create_insight_project_gmasnqeb.sql in the SQL Editor and expose schema mzo_insight. ' +
         e.message
     );
   }

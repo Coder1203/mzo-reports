@@ -4,9 +4,9 @@
  * computes pre-calculated KPI statistics, and uploads snapshot CSVs + meta.json
  * to Supabase Storage ('reports' bucket).
  */
-const fs = require('fs');
-const path = require('path');
+const { storageConfigured, upload, publishMeta, cli } = require('./common');
 
+const LABEL = 'Defective Sync';
 const SUMMARY_GOOGLE_CSV_URL =
   process.env.DEFECTIVE_SUMMARY_CSV_URL ||
   'https://docs.google.com/spreadsheets/d/1dMLSX2bZBqZMPooh7_CrniCjqgy4MijaFW62GKJJldA/export?format=csv&gid=0';
@@ -14,23 +14,6 @@ const SUMMARY_GOOGLE_CSV_URL =
 const DETAILS_GOOGLE_CSV_URL =
   process.env.DEFECTIVE_DETAILS_CSV_URL ||
   'https://docs.google.com/spreadsheets/d/1dMLSX2bZBqZMPooh7_CrniCjqgy4MijaFW62GKJJldA/export?format=csv&gid=1638574999';
-
-const CFG_PATH = path.join(__dirname, '..', 'data', 'supabase_config.json');
-let SUPABASE_URL = process.env.INSIGHT_SUPABASE_URL || '';
-let SUPABASE_KEY = process.env.INSIGHT_SUPABASE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-
-if (fs.existsSync(CFG_PATH)) {
-  try {
-    const cfg = JSON.parse(fs.readFileSync(CFG_PATH, 'utf8'));
-    if (cfg.insightUrl) SUPABASE_URL = cfg.insightUrl;
-    if (cfg.insightKey) SUPABASE_KEY = cfg.insightKey;
-  } catch (_) {}
-}
-
-const STORAGE_BUCKET = process.env.REPORTS_STORAGE_BUCKET || 'reports';
-const SUMMARY_STORAGE_OBJECT = 'defective/summary.csv';
-const DETAILS_STORAGE_OBJECT = 'defective/details.csv';
-const META_FILE = path.join(__dirname, '..', 'data', 'defective_meta.json');
 
 function formatAsOnDate(raw) {
   const str = String(raw || '').trim();
@@ -42,27 +25,6 @@ function formatAsOnDate(raw) {
     return `${d}/${m}/${y}`;
   }
   return str;
-}
-
-async function uploadToStorage(objectPath, content, contentType) {
-  if (!SUPABASE_URL || !SUPABASE_KEY) return null;
-  const root = SUPABASE_URL.replace(/\/$/, '');
-  const url = `${root}/storage/v1/object/${STORAGE_BUCKET}/${objectPath}`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: 'Bearer ' + SUPABASE_KEY,
-      'Content-Type': contentType,
-      'x-upsert': 'true'
-    },
-    body: content
-  });
-  if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`Upload ${objectPath} failed (${res.status}): ${errText.slice(0, 300)}`);
-  }
-  return `${root}/storage/v1/object/public/${STORAGE_BUCKET}/${objectPath}`;
 }
 
 async function run() {
@@ -198,19 +160,15 @@ async function run() {
     detailsRows: stats.detailsRows
   });
 
-  // Upload Summary and Details to Supabase Storage
   let publicSummaryUrl = '';
   let publicDetailsUrl = '';
-
-  if (SUPABASE_URL && SUPABASE_KEY) {
-    console.log('[Defective Sync] Uploading Summary & Details to Supabase Storage...');
+  if (storageConfigured()) {
     const [sumUrl, detUrl] = await Promise.all([
-      uploadToStorage(SUMMARY_STORAGE_OBJECT, summaryCsv, 'text/csv'),
-      uploadToStorage(DETAILS_STORAGE_OBJECT, detailsCsv, 'text/csv')
+      upload('defective/summary.csv', summaryCsv, 'text/csv'),
+      upload('defective/details.csv', detailsCsv, 'text/csv')
     ]);
     publicSummaryUrl = `${sumUrl}?v=${rawAsOn || Date.now()}`;
     publicDetailsUrl = `${detUrl}?v=${rawAsOn || Date.now()}`;
-    console.log('[Defective Sync] Storage upload SUCCESSFUL!');
   }
 
   const meta = {
@@ -222,30 +180,12 @@ async function run() {
     detailsCsvUrl: publicDetailsUrl || DETAILS_GOOGLE_CSV_URL,
     source: publicSummaryUrl ? 'supabase_storage' : 'google_sheet'
   };
+  await publishMeta('defective', 'defective_meta.json', meta, LABEL);
 
-  // Save local metadata file
-  fs.writeFileSync(META_FILE, JSON.stringify(meta, null, 2), 'utf8');
-  console.log(`[Defective Sync] Local metadata saved to ${META_FILE}`);
-
-  // Upload meta.json to Supabase Storage
-  if (SUPABASE_URL && SUPABASE_KEY) {
-    try {
-      await uploadToStorage('defective/meta.json', JSON.stringify(meta, null, 2), 'application/json');
-      console.log('[Defective Sync] Uploaded defective/meta.json to Supabase Storage!');
-    } catch (e) {
-      console.warn('[Defective Sync] meta.json upload error:', e.message);
-    }
-  }
-
-  console.log('[Defective Sync] ALL DONE in', Date.now() - t0, 'ms');
+  console.log(`[${LABEL}] Done in ${Date.now() - t0}ms`);
   return meta;
 }
 
 module.exports = { syncDefectiveToSupabase: run };
 
-if (require.main === module) {
-  run().catch(err => {
-    console.error('[Defective Sync] Error:', err);
-    process.exit(1);
-  });
-}
+cli(module, run, LABEL);

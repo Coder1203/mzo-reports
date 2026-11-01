@@ -2,12 +2,12 @@
  * One-time import: Google Sheet login users → mzo_insight.portal_users
  *
  * Prerequisites:
- *   1. Run scripts/create_mzo_insight_portal_users.sql in Supabase SQL Editor
+ *   1. Run scripts/sql/create_mzo_insight_portal_users.sql in Supabase SQL Editor
  *   2. Ensure mzo_insight is in Project Settings → API → Exposed schemas
  *
  * Usage:
  *   npm run migrate:portal-users
- *   node scripts/import_portal_users_from_sheet.js
+ *   node scripts/migrate/import_portal_users_from_sheet.js
  *
  * Optional: FORCE=1 to wipe portal_users and re-import
  */
@@ -29,7 +29,7 @@ function loadCredentials() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
     process.env.SUPABASE_ANON_KEY ||
     '';
-  const cfgPath = path.join(__dirname, '..', 'data', 'supabase_config.json');
+  const cfgPath = path.join(__dirname, '..', '..', 'data', 'supabase_config.json');
   if (fs.existsSync(cfgPath)) {
     const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
     url = cfg.supabaseUrl || cfg.url || url;
@@ -163,7 +163,7 @@ async function main() {
     if (/HTTP 404/.test(err.message)) {
       throw new Error(
         `Table ${SCHEMA}.${TABLE} not visible to the API (HTTP 404).\n` +
-          `  1) In SQL Editor run scripts/create_mzo_insight_portal_users.sql\n` +
+          `  1) In SQL Editor run scripts/sql/create_mzo_insight_portal_users.sql\n` +
           `  2) Then run:  NOTIFY pgrst, 'reload schema';\n` +
           `  3) Confirm Table Editor schema dropdown = mzo_insight and portal_users exists\n` +
           `Original: ${err.message}`

@@ -1,10 +1,10 @@
 /**
  * Fetch current Google Sheet stock CSV and write Supabase import SQL.
- * Usage: node scripts/generate_stock_snapshot_import_sql.js
+ * Usage: node scripts/migrate/generate_stock_snapshot_import_sql.js
  */
 const fs = require('fs');
 const path = require('path');
-const { lookupStockCategory } = require('../lib/stock_material_category');
+const { lookupStockCategory } = require('../../lib/stock_material_category');
 
 const STOCK_SHEET_URL =
   process.env.STOCK_SHEET_CSV_URL ||
@@ -160,7 +160,7 @@ function toDMYLabel(dateRaw) {
     ''
   ].join('\n');
 
-  const outPath = path.join(__dirname, 'import_stock_snapshot.sql');
+  const outPath = path.join(__dirname, '..', 'sql', 'import_stock_snapshot.sql');
   fs.writeFileSync(outPath, sql, 'utf8');
   console.log(`Wrote ${outPath}`);
   console.log(`Rows: ${rows.length}, withCategory: ${withCat}, reportDate: ${reportDate}`);

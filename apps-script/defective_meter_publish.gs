@@ -2,7 +2,7 @@
  * Defective Meter → this Google Spreadsheet (tabs: summary, details).
  * Bound to: https://docs.google.com/spreadsheets/d/1dMLSX2bZBqZMPooh7_CrniCjqgy4MijaFW62GKJJldA
  *
- * Same pattern as NSC (lib/sheet_mirror_publish.gs): JSON only, no HtmlService.
+ * Same pattern as NSC (apps-script/sheet_mirror_publish.gs): JSON only, no HtmlService.
  *
  * Setup:
  * 1. Open that sheet → Extensions → Apps Script → paste this file → Save.

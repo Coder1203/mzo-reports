@@ -2,7 +2,7 @@
 from PIL import Image, ImageDraw, ImageFont
 import os
 
-OUT = os.path.join(os.path.dirname(__file__), "..", "icons")
+OUT = os.path.join(os.path.dirname(__file__), "..", "..", "icons")
 BG = (19, 27, 46, 255)  # #131b2e — matches theme_color
 FG = (250, 204, 21, 255)  # bright yellow #facc15
 

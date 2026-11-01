@@ -1,6 +1,6 @@
 /**
  * Fetch legacy allotments CSV and write a Supabase SQL import file.
- * Usage: node scripts/generate_stock_allotments_import_sql.js
+ * Usage: node scripts/migrate/generate_stock_allotments_import_sql.js
  */
 const fs = require('fs');
 const path = require('path');
@@ -160,7 +160,7 @@ function parseSeq(allotmentNo) {
     ''
   ].join('\n');
 
-  const outPath = path.join(__dirname, 'import_stock_allotments.sql');
+  const outPath = path.join(__dirname, '..', 'sql', 'import_stock_allotments.sql');
   fs.writeFileSync(outPath, sql, 'utf8');
   console.log(`Wrote ${outPath}`);
   console.log(`Rows: ${rows.length}; years: ${JSON.stringify(maxByYear)}`);
