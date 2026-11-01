@@ -1,6 +1,6 @@
 {
-  "version": "2.68",
-  "cache": "mzo-reports-cache-v260",
+  "version": "2.69",
+  "cache": "mzo-reports-cache-v261",
   "force_update": false,
-  "message": "One detailed table per report: open a region, then a division, then a CCC to reach the applications, and click the path above the table to go back. Filters sit in a panel on the left."
+  "message": "Lighter and faster: pages load less code, and many small fixes across reports, maps, stock and admin."
 }

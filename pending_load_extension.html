@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Pending load extension · MZO Reports</title>
   <script src="/mzo_theme.js?v=3"></script>
-  <link rel="stylesheet" href="/mzo_theme.css?v=4" />
-  <script src="/mzo_ui.js?v=3" defer></script>
-  <script src="/mzo_data_hub.js" defer></script>
-  <script src="/mzo_scope.js?v=5" defer></script>
+  <link rel="stylesheet" href="/mzo_theme.css?v=5" />
+  <script src="/mzo_ui.js?v=4" defer></script>
+  <script src="/mzo_data_hub.js?v=90" defer></script>
+  <script src="/mzo_scope.js?v=14" defer></script>
 </head>
 <body>
   <main class="ui-page">
@@ -211,12 +211,7 @@
       UI.exportCsv('pending-load-extension.csv', [{ key: 'appl', label: 'Application' }, { key: 'con', label: 'Consumer ID' }, { key: 'name', label: 'Name' }, { key: '_region', label: 'Region' }, { key: '_divn', label: 'Division' }, { key: '_supp', label: 'CCC' }]
         .concat(APP_COLS.slice(3).map(function (c) { return { key: c.key, label: c.label, csv: c.csv }; })), window.__view || []);
     });
-    $('refreshBtn').addEventListener('click', function () {
-      var b = this; b.classList.add('spin');
-      Promise.resolve(window.mzoDataHub && window.mzoDataHub.waitForDataset('CACHE_LOAD_EXT', { forceCheck: true })).catch(function () {})
-        .then(function () { return window.mzoDataHub._peek('CACHE_LOAD_EXT'); }).then(function (t) { if (t) { prepare(t); render(); } })
-        .then(function () { b.classList.remove('spin'); });
-    });
+    UI.refresh('refreshBtn', 'CACHE_LOAD_EXT', function (t) { prepare(t); render(); });
 
     // Sync from the Google Sheet (authorised users only)
     fetch('/api/load-extension/meta', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : null; })

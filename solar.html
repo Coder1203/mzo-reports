@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Solar connections · MZO Reports</title>
   <script src="/mzo_theme.js?v=3"></script>
-  <link rel="stylesheet" href="/mzo_theme.css?v=4" />
-  <script src="/mzo_ui.js?v=3" defer></script>
-  <script src="/mzo_data_hub.js" defer></script>
-  <script src="/mzo_scope.js?v=5" defer></script>
+  <link rel="stylesheet" href="/mzo_theme.css?v=5" />
+  <script src="/mzo_ui.js?v=4" defer></script>
+  <script src="/mzo_data_hub.js?v=90" defer></script>
+  <script src="/mzo_scope.js?v=14" defer></script>
 </head>
 <body>
   <main class="ui-page">
@@ -196,22 +196,16 @@
       ]);
     }
 
-    function setScheme(s) { f.scheme = s; render(); }
     $('q').addEventListener('input', UI.debounce(function () { f.q = this.value.trim(); render(); }, 160));
     $('stats').addEventListener('click', function (e) { var s = e.target.closest('.ui-stat'); if (!s) return; var k = s.getAttribute('data-k'); f.status = f.status === k ? '' : k; if (f.status !== 'pending') f.age = ''; render(); });
     function clearAll() {
-      f.q = ''; f.status = ''; f.age = ''; f.load = ''; $('q').value = '';
-      setScheme('');
+      f.q = ''; f.status = ''; f.age = ''; f.load = ''; f.scheme = ''; $('q').value = '';
+      render();
     }
     $('exportBtn').addEventListener('click', function () {
       UI.exportCsv('solar-connections.csv', [{ key: 'appl', label: 'Application' }, { key: 'con', label: 'Consumer ID' }, { key: 'name', label: 'Name' }, { key: '_region', label: 'Region' }, { key: '_divn', label: 'Division' }, { key: '_supp', label: 'CCC' }, { key: 'scheme', label: 'Scheme' }, { key: 'load', label: 'Load (kW)' }].concat(APP_COLS.slice(5)), window.__view || []);
     });
-    $('refreshBtn').addEventListener('click', function () {
-      var b = this; b.classList.add('spin');
-      Promise.resolve(window.mzoDataHub.waitForDataset('CACHE_SOLAR', { forceCheck: true })).catch(function () {})
-        .then(function () { return window.mzoDataHub._peek('CACHE_SOLAR'); }).then(function (t) { if (t) { prepare(t); render(); } })
-        .then(function () { b.classList.remove('spin'); });
-    });
+    UI.refresh('refreshBtn', 'CACHE_SOLAR', function (t) { prepare(t); render(); });
 
     var first = true;
     UI.load('CACHE_SOLAR', function (text, info) {

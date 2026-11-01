@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Disconnection tracker · MZO Reports</title>
   <script src="/mzo_theme.js?v=3"></script>
-  <link rel="stylesheet" href="/mzo_theme.css?v=4" />
-  <script src="/mzo_ui.js?v=3" defer></script>
-  <script src="/mzo_data_hub.js" defer></script>
-  <script src="/mzo_scope.js?v=5" defer></script>
+  <link rel="stylesheet" href="/mzo_theme.css?v=5" />
+  <script src="/mzo_ui.js?v=4" defer></script>
+  <script src="/mzo_data_hub.js?v=90" defer></script>
+  <script src="/mzo_scope.js?v=14" defer></script>
   <script src="/auth.js" defer></script>
   <style>
     .dc-base { padding: 10px 14px; font-size: 12px; line-height: 1.5; color: var(--mzo-muted); }
@@ -23,7 +23,6 @@
     .dc-act i b { height: 100%; }
     .dc-act i b.p { background: var(--mzo-ok); }
     .dc-act i b.d { background: var(--mzo-bad); }
-    .dc-list-h .ui-tab small { margin-left: 5px; font-weight: 400; color: var(--mzo-muted); font-variant-numeric: tabular-nums; }
     .dc-list-h .right { display: flex; align-items: center; gap: 8px; }
     .ui-table td.num { white-space: nowrap; }
     .dc-note-cell { max-width: 420px; }
@@ -257,7 +256,6 @@
 
     /* ------------------------------------------------------------------ filters */
 
-    function uniq(rows, k) { var s = {}; rows.forEach(function (r) { if (r[k]) s[r[k]] = 1; }); return Object.keys(s).sort(); }
     // Office path and panel filters (outstanding, class, search): the base every number is counted on.
     // `skip` leaves one facet out so it can count its own options.
     function base(skip) {
@@ -353,7 +351,6 @@
       var max = Math.max.apply(null, list.map(function (d) { return d.p + d.x; }));
       var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       $('activity').innerHTML = list.map(function (d) {
-        var tot = d.p + d.x;
         return '<div class="row" title="' + UI.fmtDate(d.d) + ': ' + UI.n(d.p) + ' paid, ' + UI.n(d.x) + ' disconnected"><span>' + d.d.getDate() + ' ' + MON[d.d.getMonth()] + '</span>' +
           '<i><b class="p" style="width:' + (d.p / max * 100) + '%"></b><b class="d" style="width:' + (d.x / max * 100) + '%"></b></i>' +
           '<span>' + UI.n(d.p) + ' · ' + UI.n(d.x) + '</span></div>';
@@ -517,23 +514,38 @@
       if (followupScriptUrl) enqueueFollowup({ op: 'add', id: entry.id, conId: key, at: entry.at, by: entry.by, note: entry.note });
       return { ok: true };
     }
+    // Remove one note id from every consumer's list (a note can only live under one consumer).
+    function dropFromStore(store, entryId) {
+      Object.keys(store).forEach(function (k) {
+        store[k] = (store[k] || []).filter(function (e) { return e && e.id !== entryId; });
+        if (!store[k].length) delete store[k];
+      });
+    }
     function deleteFollowup(id, entryId) {
       if (!canDeleteFollowup()) return;
       var key = fuKey(id); if (!key || !entryId) return;
-      var store = readFollowupStore(), list = Array.isArray(store[key]) ? store[key] : [];
-      var next = list.filter(function (e) { return e && e.id !== entryId; });
-      if (next.length) store[key] = next; else delete store[key];
+      var store = readFollowupStore();
+      dropFromStore(store, entryId);
       writeFollowupStore(store);
-      var pendingAdd = readFollowupOutbox().some(function (j) { return j && j.op === 'add' && j.id === entryId; });
-      var kept = readFollowupOutbox().filter(function (j) { return !(j && j.op === 'add' && j.id === entryId); });
+      // A note that never reached the sheet just leaves the outbox; a synced one queues a delete.
+      var queue = readFollowupOutbox(), isPendingAdd = function (j) { return j && j.op === 'add' && j.id === entryId; };
+      var pendingAdd = queue.some(isPendingAdd), kept = queue.filter(function (j) { return !isPendingAdd(j); });
       if (!pendingAdd && followupScriptUrl) kept.push({ op: 'delete', id: entryId, conId: key });
       writeFollowupOutbox(kept);
       if (followupScriptUrl) flushFollowupOutbox();
     }
-    function parseFollowupJson(text) {
-      var raw = String(text || '').trim();
-      if (!raw || (raw.charAt(0) !== '{' && raw.charAt(0) !== '[')) throw new Error('Follow-up sync returned a web page.');
-      return JSON.parse(raw);
+    // Apps Script call with a 20 s timeout; resolves to the parsed JSON when the script answers success/ok.
+    function scriptCall(url, init) {
+      var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 20000) : null;
+      init.credentials = 'omit'; init.redirect = 'follow'; if (ctrl) init.signal = ctrl.signal;
+      return fetch(url, init).then(function (res) { return res.text(); }).then(function (text) {
+        var raw = String(text || '').trim();
+        if (!raw || (raw.charAt(0) !== '{' && raw.charAt(0) !== '[')) throw new Error('Follow-up sync returned a web page.');
+        var d = JSON.parse(raw);
+        if (!d || (d.status !== 'success' && d.status !== 'ok')) throw new Error((d && d.message) || 'Follow-up sync failed');
+        return d;
+      }).finally(function () { if (timer) clearTimeout(timer); });
     }
     function enqueueUnsyncedFollowups() {
       if (!followupScriptUrl) return;
@@ -558,14 +570,14 @@
         if (!id || !conId || !note || deleted.has(id)) return;
         remoteIds.add(id);
         if (queue.some(function (j) { return j && j.op === 'delete' && j.id === id; })) return;
-        Object.keys(store).forEach(function (k) { store[k] = (store[k] || []).filter(function (e) { return e && e.id !== id; }); if (!store[k].length) delete store[k]; });
+        dropFromStore(store, id);
         var list = store[conId] || [];
         list.push({ id: id, at: String(row.at || ''), by: String(row.by || '').slice(0, 80), note: note, sync: 'ok' });
         store[conId] = list;
         queue = queue.filter(function (j) { return !(j && j.op === 'add' && j.id === id); });
       });
       deleted.forEach(function (id) {
-        Object.keys(store).forEach(function (k) { store[k] = (store[k] || []).filter(function (e) { return e && e.id !== id; }); if (!store[k].length) delete store[k]; });
+        dropFromStore(store, id);
         queue = queue.filter(function (j) { return !(j && j.id === id); });
       });
       queue = queue.filter(function (j) { return !j || j.op !== 'delete' || !(deleted.has(j.id) || !remoteIds.has(j.id)); });
@@ -574,18 +586,10 @@
     }
     function postFollowupJob(job) {
       var payload = job.op === 'delete' ? { action: 'delete', id: job.id } : { action: 'add', id: job.id, conId: job.conId, at: job.at, by: job.by || '', note: job.note };
-      var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 20000) : null;
-      return fetch(followupScriptUrl, {
-        method: 'POST', credentials: 'omit', redirect: 'follow',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'data=' + encodeURIComponent(JSON.stringify(payload)),
-        signal: ctrl ? ctrl.signal : undefined
-      }).then(function (res) { return res.text(); }).then(function (text) {
-        var d = parseFollowupJson(text);
-        if (!d || (d.status !== 'success' && d.status !== 'ok')) throw new Error((d && d.message) || 'Follow-up sync failed');
-        return d;
-      }).finally(function () { if (timer) clearTimeout(timer); });
+      return scriptCall(followupScriptUrl, {
+        method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'data=' + encodeURIComponent(JSON.stringify(payload))
+      });
     }
     function flushFollowupOutbox() {
       if (followupFlushing || !followupScriptUrl) return Promise.resolve();
@@ -616,19 +620,15 @@
     function pullFollowupComments() {
       if (followupPulling || !followupScriptUrl) return Promise.resolve();
       followupPulling = true;
-      var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 20000) : null;
       var url = followupScriptUrl + (followupScriptUrl.indexOf('?') >= 0 ? '&' : '?') + 'list=1&t=' + Date.now();
-      return fetch(url, { method: 'GET', credentials: 'omit', redirect: 'follow', signal: ctrl ? ctrl.signal : undefined })
-        .then(function (res) { return res.text(); })
-        .then(function (text) {
-          var d = parseFollowupJson(text);
-          if (!d || (d.status !== 'success' && d.status !== 'ok') || !Array.isArray(d.comments)) return;
+      return scriptCall(url, { method: 'GET' })
+        .then(function (d) {
+          if (!Array.isArray(d.comments)) return;
           applyRemoteFollowups(d);
           maybeRefreshFollowups();
         })
         .catch(function () {})
-        .finally(function () { if (timer) clearTimeout(timer); followupPulling = false; });
+        .finally(function () { followupPulling = false; });
     }
     // A pull refreshes the follow-up list only; it never reloads the consumer CSV.
     function maybeRefreshFollowups() {
@@ -790,12 +790,7 @@
 
     function reparse(text) { if (!text) return; prepare(text); render({ keepPage: true }); refreshOpenDrawer(); }
 
-    $('refreshBtn').addEventListener('click', function () {
-      var b = this; b.classList.add('spin');
-      Promise.resolve(window.mzoDataHub && window.mzoDataHub.waitForDataset(HUB_KEY, { forceCheck: true })).catch(function () {})
-        .then(function () { return window.mzoDataHub._peek(HUB_KEY); }).then(reparse)
-        .then(function () { b.classList.remove('spin'); });
-    });
+    UI.refresh('refreshBtn', HUB_KEY, reparse);
 
     // Sync from the Google Sheet to the cloud cache (Admin, dm1, disconnection-sync-autho).
     metaP.then(function (m) { if (m && m.canSync) $('syncBtn').hidden = false; });
@@ -856,7 +851,7 @@
         .then(onData)
         .catch(function () {
           $('asOn').textContent = 'No data';
-          ['table'].forEach(function (id) { $(id).innerHTML = '<div class="ui-empty">Could not load data. <button type="button" class="ui-btn sm" onclick="location.reload()">Retry</button></div>'; });
+          $('table').innerHTML = '<div class="ui-empty">Could not load data. <button type="button" class="ui-btn sm" onclick="location.reload()">Retry</button></div>';
         });
     }
     UI.load(HUB_KEY, function (text, info) {
