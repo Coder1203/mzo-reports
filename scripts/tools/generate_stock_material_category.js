@@ -40,41 +40,12 @@ function normalizeCategory(v) {
 
   const json = JSON.stringify(map, null, 2);
 
-  const libPath = path.join(__dirname, '..', '..', 'lib', 'stock_material_category.js');
-  fs.writeFileSync(
-    libPath,
-    [
-      '/**',
-      ' * Fixed Material code → Category (LOCAL / CENTRAL).',
-      ' * Sourced from stock metadata; edit this file when categories change.',
-      ' * Regenerate: node scripts/tools/generate_stock_material_category.js',
-      ' */',
-      "'use strict';",
-      '',
-      'const STOCK_MATERIAL_CATEGORY = ' + json + ';',
-      '',
-      'function lookupStockCategory(materialCode) {',
-      "  const code = String(materialCode || '').trim();",
-      "  if (!code) return '';",
-      '  if (STOCK_MATERIAL_CATEGORY[code]) return STOCK_MATERIAL_CATEGORY[code];',
-      "  const stripped = code.replace(/^0+/, '');",
-      '  if (stripped && STOCK_MATERIAL_CATEGORY[stripped]) return STOCK_MATERIAL_CATEGORY[stripped];',
-      "  return '';",
-      '}',
-      '',
-      'module.exports = { STOCK_MATERIAL_CATEGORY, lookupStockCategory };',
-      ''
-    ].join('\n'),
-    'utf8'
-  );
-
   const browserPath = path.join(__dirname, '..', '..', 'stock', 'stock_material_category.js');
   fs.writeFileSync(
     browserPath,
     [
       '/**',
       ' * Fixed Material code → Category (LOCAL / CENTRAL).',
-      ' * Keep in sync with lib/stock_material_category.js',
       ' * Regenerate: node scripts/tools/generate_stock_material_category.js',
       ' */',
       '(function (global) {',

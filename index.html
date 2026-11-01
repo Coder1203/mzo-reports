@@ -21,7 +21,17 @@
   <script src="mzo_scope.js?v=14"></script>
   <script src="mzo_presets_hub.js?v=88"></script>
   <script src="mzo_docket_briefing.js"></script>
-  <script src="mzo_executive_briefing.js?v=257"></script>
+  <script>
+    // Header Critical Analytics button: show how many critical items the briefing has.
+    document.addEventListener('DOMContentLoaded', function () {
+      var btn = document.getElementById('btnExecutiveBriefingHeader');
+      if (!btn) return;
+      fetch('/api/executive/briefing', { credentials: 'same-origin' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (j) { var c = j && j.briefing && j.briefing.summaryCounts; if (c) btn.title = 'Critical Analytics (' + (c.critical || 0) + ' priority bottlenecks)'; })
+        .catch(function () {});
+    });
+  </script>
 
   <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400..700;1,400..700&display=swap"
     rel="stylesheet">

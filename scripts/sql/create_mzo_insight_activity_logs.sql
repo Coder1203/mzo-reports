@@ -1,6 +1,5 @@
 -- Activity logs in schema mzo_insight (replaces Google Sheet / Apps Script logs)
 -- Run in Supabase Dashboard → SQL Editor → Run
--- Then optional: npm run migrate:activity-logs
 --
 -- Does NOT touch Power Map, prioritySI, or portal_users data.
 

@@ -2142,7 +2142,7 @@ html.ui #loadingOverlay .spinner, html.ui .spinner { border-color: var(--mzo-bor
           }
           showMessage(
             (err && err.message ? err.message : 'Failed to save cost.') +
-              ' If columns are missing, run scripts/alter_prioritysi_money_fields.sql in Supabase.',
+              ' If columns are missing, run scripts/sql/upgrade_existing_tables.sql in Supabase.',
             'error'
           );
         } finally {

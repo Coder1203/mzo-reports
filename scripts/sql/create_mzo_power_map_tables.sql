@@ -1,6 +1,5 @@
 -- MZO Power Map tables (distinct names — avoids clash with other "substations" projects/tables)
 -- Run in Supabase Dashboard → SQL Editor → Run
--- Then: node scripts/import_mzo_power_map_from_sheet.js
 
 DROP TABLE IF EXISTS public.mzo_power_corrections CASCADE;
 DROP TABLE IF EXISTS public.mzo_power_substations CASCADE;

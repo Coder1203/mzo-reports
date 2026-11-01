@@ -6,7 +6,6 @@
 |---|---|---|---|
 | `sheet_mirror_publish.gs` | `NSCWH` (Withheld), Stock | Withheld and Stock uploads (`MzoSheetMirror.publishTab` in `lib/sheet_mirror_client.js`). It can also serve `nsc_working`, but that workbook runs `nsc_mirror_and_followup.gs` | `NSC_WITHHELD_SHEET_SCRIPT_URL`, `STOCK_SHEET_SCRIPT_URL` |
 | `nsc_mirror_and_followup.gs` | `nsc_working` | NSC dump mirror **and** Pending NSC follow-up notes in one web app. This is the version deployed on `nsc_working` | `NSC_SHEET_SCRIPT_URL`, `NSC_FOLLOWUP_SCRIPT_URL` |
-| `nsc_followup.gs` | `nsc_working` | The follow-up part only, for reference. Do not paste it over the dump script | — |
 | `defective_meter_publish.gs` | Defective meter workbook (tabs `summary`, `details`) | Defective meter upload | `DEFECTIVE_SHEET_SCRIPT_URL` |
 | `disconnection_followup.gs` | Disconnection sheet (`Followups` tab) | Disconnection tracker follow-up notes | `DISCONNECTION_FOLLOWUP_SCRIPT_URL` |
 | `mzo_metadata_sync.gs` | Standalone project | Report update dates for the hub and Sheet links, refreshed every 15 minutes and merged into `GET /api/hub/versions` | `METADATA_SCRIPT_URL` |

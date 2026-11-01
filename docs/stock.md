@@ -10,7 +10,7 @@ The Stock page (`stock/index.html`) shows the SAP stock dump; `stock/upload.html
 - **Workbook:** `Sheet1` of the SAP export (Material and Material Group are required). The Excel is cleaned **in the browser** (`stock/stock_client_pipeline.js`); dump bytes never pass through Vercel.
 - **Where it goes:** when `STOCK_USE_STORAGE=1` and `INSIGHT_SUPABASE_URL` / `INSIGHT_SUPABASE_KEY` are set (production today), the browser `PUT`s `stock/snapshot.csv` to Supabase Storage with a signed upsert URL from `/api/stock/meta`, then `/api/stock/publish` records only the meta. Supabase returns the signed path as `/object/upload/sign/...`; prefix it with `/storage/v1` or the PUT 404s. Without Storage the page publishes to the Google Sheet through Apps Script.
 - **Dashboard:** DataHub `CACHE_STOCK` with `versionUrl: /api/stock/meta` and the `csvUrl` it returns (Storage or Google).
-- **Local / Central** material categories are hard-coded in `lib/stock_material_category.js` and `stock/stock_material_category.js`; regenerate both with `npm run tools:stock-categories`.
+- **Local / Central** material categories are hard-coded in `stock/stock_material_category.js`; regenerate it with `npm run tools:stock-categories`.
 
 ## New insight project
 
@@ -37,7 +37,7 @@ Ledger-only allotment (Zone → Division) and diversion (Division → Division).
 
 The server enforces create and cancel; list/get only need a session.
 
-**Cancel is a soft cancel:** rows stay, every line of that `allotment_no` gets `status = cancelled`. Lists dim the order with a **Cancelled** badge, the letter/PDF gets a **CANCELLED by …** stamp, and KPIs and summaries exclude cancelled quantities. There is no un-cancel. SQL: `scripts/sql/alter_stock_allotments_cancel.sql` and `scripts/sql/alter_portal_users_stock_cancel_auth.sql`.
+**Cancel is a soft cancel:** rows stay, every line of that `allotment_no` gets `status = cancelled`. Lists dim the order with a **Cancelled** badge, the letter/PDF gets a **CANCELLED by …** stamp, and KPIs and summaries exclude cancelled quantities. There is no un-cancel. SQL: the allotment-cancel and `stock_cancel_autho` blocks in `scripts/sql/upgrade_existing_tables.sql`.
 
 **View Allotments** searches by allotment no, material, remarks and creator; filters by division and date; opens the order letter; and summarises material-wise, division-wise and date-wise.
 

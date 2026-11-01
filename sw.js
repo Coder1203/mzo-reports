@@ -32,7 +32,6 @@ const PRECACHE_ASSETS = [
   'manifest.json',
   'manifest-legacy.json',
   'mzo_pwa_icons.js',
-  'mzo_executive_briefing.js',
   'icons/icon-192-v2.png',
   'icons/icon-512-v2.png',
   'icons/maa-durga-eyes.gif',

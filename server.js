@@ -2436,7 +2436,7 @@ async function findAllotmentDbRows_(allotmentNo) {
         } catch (e) {
             if (/status|cancelled_at|cancelled_by|cancel_reason|42703|PGRST204/i.test(e.message || '')) {
                 throw new Error(
-                    'Cancel columns missing. Run scripts/sql/alter_stock_allotments_cancel.sql in Supabase SQL Editor.'
+                    'Cancel columns missing. Run scripts/sql/upgrade_existing_tables.sql in the Supabase SQL Editor.'
                 );
             }
             console.warn('[stock cancel] lookup attempt failed:', e.message);
@@ -2457,7 +2457,7 @@ async function findAllotmentDbRows_(allotmentNo) {
         } catch (e) {
             if (/status|cancelled_at|cancelled_by|42703|PGRST204/i.test(e.message || '')) {
                 throw new Error(
-                    'Cancel columns missing. Run scripts/sql/alter_stock_allotments_cancel.sql in Supabase SQL Editor.'
+                    'Cancel columns missing. Run scripts/sql/upgrade_existing_tables.sql in the Supabase SQL Editor.'
                 );
             }
             throw e;
@@ -2524,7 +2524,7 @@ async function cancelAllotmentInSupabase_(allotmentNo, cancelledBy, reason) {
     } catch (e) {
         if (/status|cancelled_at|cancelled_by|cancel_reason|PGRST|42703/i.test(e.message || '')) {
             throw new Error(
-                'Cancel columns missing. Run scripts/sql/alter_stock_allotments_cancel.sql in Supabase SQL Editor.'
+                'Cancel columns missing. Run scripts/sql/upgrade_existing_tables.sql in the Supabase SQL Editor.'
             );
         }
         throw e;

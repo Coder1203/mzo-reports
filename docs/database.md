@@ -22,27 +22,21 @@ Production login stays on the old project (`unsmtschmcvftfqwabaq`) until `INSIGH
 
 ## SQL files (`scripts/sql/`)
 
-Run in the Supabase SQL Editor, in this order for a fresh project:
+Run in the Supabase SQL Editor.
 
-1. `create_mzo_insight_schema.sql`: schema plus Priority SI tables
-2. `create_mzo_insight_portal_users.sql`, then any `alter_portal_users_*.sql` the table is missing (each adds one module flag)
-3. `create_mzo_insight_activity_logs.sql`
-4. `create_important_unbilled_months.sql`
-5. `create_mzo_power_map_tables.sql`
-6. Stock: `create_mzo_insight_stock_snapshot.sql`, `create_mzo_insight_stock_allotments.sql`, `alter_stock_allotments_cancel.sql`, `alter_stock_snapshot_add_category.sql`, `create_stock_storage_policies.sql`
-
-`create_insight_project_gmasnqeb.sql` creates everything above in an empty project. Clean-up scripts: `drop_si_user_access.sql` (old SI PIN table), `drop_mzo_insight_nsc_tables.sql` (NSC no longer stores rows in Supabase; keep the `nsc_upload_autho` flag). `import_stock_*.sql` are generated one-off imports.
-
-## One-time imports (`scripts/migrate/`)
-
-| Command | Does |
+| File | Run it when |
 |---|---|
-| `npm run migrate:portal-users` | Imports users from the old Google Sheet (`FORCE=1` wipes and re-imports) |
-| `npm run migrate:activity-logs` | Imports old Google activity logs |
-| `npm run migrate:power-map` | Imports the Power Map sheet into `mzo_power_*` tables |
-| `npm run copy:insight` | Copies users, logs, unbilled months, allotments and the stock snapshot into the new insight project without switching production |
+| `create_insight_project_gmasnqeb.sql` | Setting up an empty insight project: portal users, logs, unbilled months and stock tables in one go |
+| `create_mzo_insight_schema.sql` | Creating the `mzo_insight` schema and the Priority SI tables |
+| `create_mzo_insight_portal_users.sql`, `create_mzo_insight_activity_logs.sql`, `create_important_unbilled_months.sql` | Creating those tables one by one in an existing project |
+| `create_mzo_insight_stock_snapshot.sql`, `create_mzo_insight_stock_allotments.sql`, `create_stock_storage_policies.sql` | Adding the stock tables and the Storage policies |
+| `create_mzo_power_map_tables.sql` | Creating the Power Map tables (drops and recreates them) |
+| `upgrade_existing_tables.sql` | Bringing an older project up to date: every column added since (module flags, Google sign-in fields, SI money fields, allotment cancel, stock category). Guarded, safe to re-run |
+| `drop_legacy_tables.sql` | Removing the old SI PIN table and the NSC row tables (keep the `nsc_upload_autho` flag) |
 
-These were run once during past migrations; they are kept for rebuilding a project.
+## Moving to the new insight project
+
+`npm run copy:insight` (`scripts/migrate/copy_insight_to_new_supabase.js`) copies users, logs, unbilled months, allotments and the stock snapshot into the new project without switching production; see [stock.md](stock.md#new-insight-project). The one-off imports from the old Google Sheets (users, activity logs, Power Map, stock) were run during earlier migrations and removed from the repo; git history has them.
 
 ## Login rules
 

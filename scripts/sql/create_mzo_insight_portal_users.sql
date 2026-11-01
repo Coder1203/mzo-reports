@@ -1,6 +1,5 @@
 -- Portal login users in schema mzo_insight (replaces Google Sheet as source of truth)
 -- Run in Supabase Dashboard → SQL Editor → Run
--- Then: npm run migrate:portal-users
 --
 -- Does NOT touch Power Map tables or prioritySI.
 

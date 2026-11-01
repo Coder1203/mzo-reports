@@ -1,6 +1,5 @@
 /**
  * Fixed Material code → Category (LOCAL / CENTRAL).
- * Keep in sync with lib/stock_material_category.js
  * Regenerate: node scripts/tools/generate_stock_material_category.js
  */
 (function (global) {

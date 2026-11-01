@@ -11,9 +11,6 @@
     "sync:defective": "node --env-file-if-exists=.env scripts/sync/sync_defective_to_supabase.js",
     "sync:pending-mc": "node --env-file-if-exists=.env scripts/sync/sync_pending_mc_to_supabase.js",
     "sync:load-ext": "node --env-file-if-exists=.env scripts/sync/sync_load_ext_to_supabase.js",
-    "migrate:power-map": "node scripts/migrate/import_mzo_power_map_from_sheet.js",
-    "migrate:portal-users": "node scripts/migrate/import_portal_users_from_sheet.js",
-    "migrate:activity-logs": "node scripts/migrate/import_activity_logs_from_google.js",
     "copy:insight": "node scripts/migrate/copy_insight_to_new_supabase.js",
     "tools:briefing-cccs": "node scripts/tools/compute_briefing_cccs.js",
     "tools:stock-categories": "node scripts/tools/generate_stock_material_category.js"
